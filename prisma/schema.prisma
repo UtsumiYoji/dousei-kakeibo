@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model Member {
+  id                         String                  @id @default(cuid())
+  name                       String
+  displayOrder               Int                     @default(0)
+  isActive                   Boolean                 @default(true)
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  paidExpenses               Expense[]               @relation("ExpensePayer")
+  outgoingTransfers          Transfer[]              @relation("TransferFrom")
+  incomingTransfers          Transfer[]              @relation("TransferTo")
+  categoryRatios             CategoryRatio[]
+  expenseSplits              ExpenseSplit[]
+  recurringExpenseSplits     RecurringExpenseSplit[]
+  recurringExpenseRulesPaid  RecurringExpenseRule[]  @relation("RecurringPayer")
+}
+
+model Category {
+  id                    String                 @id @default(cuid())
+  name                  String                 @unique
+  displayOrder          Int                    @default(0)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  ratios                CategoryRatio[]
+  expenses              Expense[]
+  recurringExpenseRules RecurringExpenseRule[]
+}
+
+model CategoryRatio {
+  id          String   @id @default(cuid())
+  categoryId  String
+  memberId    String
+  basisPoints Int
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, memberId])
+}
+
+model Expense {
+  id             String         @id @default(cuid())
+  occurredAt     DateTime       @default(now())
+  description    String
+  amountYen      Int
+  payerMemberId  String
+  categoryId     String
+  settledAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  payer          Member         @relation("ExpensePayer", fields: [payerMemberId], references: [id])
+  category       Category       @relation(fields: [categoryId], references: [id])
+  splits         ExpenseSplit[]
+  recurringRuleId String?
+}
+
+model ExpenseSplit {
+  id          String  @id @default(cuid())
+  expenseId   String
+  memberId    String
+  basisPoints Int
+  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  member      Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, memberId])
+}
+
+model Transfer {
+  id           String   @id @default(cuid())
+  fromMemberId String
+  toMemberId   String
+  amountYen    Int
+  transferredAt DateTime @default(now())
+  note         String?
+  createdAt    DateTime @default(now())
+  fromMember   Member   @relation("TransferFrom", fields: [fromMemberId], references: [id])
+  toMember     Member   @relation("TransferTo", fields: [toMemberId], references: [id])
+}
+
+model RecurringExpenseRule {
+  id             String                    @id @default(cuid())
+  frequency      RecurrenceFrequency
+  dayOfMonth     Int?
+  dayOfWeek      Int?
+  description    String
+  amountYen      Int
+  payerMemberId  String
+  categoryId     String
+  isActive       Boolean                   @default(true)
+  lastGeneratedAt DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  payer          Member                    @relation("RecurringPayer", fields: [payerMemberId], references: [id])
+  category       Category                  @relation(fields: [categoryId], references: [id])
+  splits         RecurringExpenseSplit[]
+  generations    RecurringExpenseGeneration[]
+}
+
+model RecurringExpenseSplit {
+  id          String               @id @default(cuid())
+  ruleId      String
+  memberId    String
+  basisPoints Int
+  rule        RecurringExpenseRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  member      Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, memberId])
+}
+
+model RecurringExpenseGeneration {
+  id          String               @id @default(cuid())
+  ruleId      String
+  targetDate  DateTime
+  expenseId   String?
+  createdAt   DateTime             @default(now())
+  rule        RecurringExpenseRule  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, targetDate])
+}
