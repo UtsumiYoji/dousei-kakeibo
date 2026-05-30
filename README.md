@@ -119,6 +119,32 @@ docker compose down
 docker compose down -v
 ```
 
+## コンテナイメージ
+
+`main` ブランチへのpush、`v*.*.*` 形式のタグpush、または手動実行でGitHub Actionsが `app` と `worker` のコンテナイメージをGitHub Container Registryへpushします。
+
+```text
+ghcr.io/<owner>/dousei-kakeibo-app
+ghcr.io/<owner>/dousei-kakeibo-worker
+```
+
+主なタグ:
+
+- `latest`: default branchの最新
+- `main`: mainブランチの最新
+- `sha-<commit>`: commit SHA
+- `v*.*.*`: Git tag
+
+Docker Composeでレジストリ上のイメージを使う場合は、`app` と `worker` の `build: .` を `image:` に置き換えます。
+
+```yaml
+app:
+  image: ghcr.io/<owner>/dousei-kakeibo-app:latest
+
+worker:
+  image: ghcr.io/<owner>/dousei-kakeibo-worker:latest
+```
+
 ## よく使うコマンド
 
 ```bash
