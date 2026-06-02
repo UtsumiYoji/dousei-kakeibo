@@ -6,6 +6,7 @@ RUN npm install
 
 FROM node:24-bookworm-slim AS app
 WORKDIR /app
+ARG DATABASE_URL=postgresql://kakeibo:kakeibo@localhost:5432/kakeibo?schema=public
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
